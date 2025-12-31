@@ -1,13 +1,17 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const WorkspaceSchema = new Schema({
-  name: { type: String, required: true },
-  description: { type: String },
+export interface IWorkspace extends Document {
+  name: string;
+  owner: mongoose.Types.ObjectId;
+  members: mongoose.Types.ObjectId[];
+  slug: string;
+}
+
+const WorkspaceSchema = new Schema<IWorkspace>({
+  name: { type: String, required: true, trim: true },
   owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  members: [{
-    user: { type: Schema.Types.ObjectId, ref: 'User' },
-    role: { type: String, enum: ['owner', 'member', 'viewer'], default: 'member' }
-  }]
+  members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  slug: { type: String, unique: true, lowercase: true },
 }, { timestamps: true });
 
-export const Workspace = model('Workspace', WorkspaceSchema);
+export const Workspace = mongoose.model<IWorkspace>('Workspace', WorkspaceSchema);
