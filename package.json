@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform/issues"
   },
-  "homepage": "https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform#readme"
+  "homepage": "https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform#readme",
+  "devDependencies": {
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.7.4"
+  }
 }
