@@ -1,10 +1,23 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const UserSchema = new Schema({
+export interface IUser extends Document {
+  email: string;
+  name: string;
+  image?: string;
+  createdAt: Date;
+}
+
+const UserSchema = new Schema<IUser>({
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please use a valid email address'],
+  },
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
   image: { type: String },
-  workspaces: [{ type: Schema.Types.ObjectId, ref: 'Workspace' }]
 }, { timestamps: true });
 
-export const User = model('User', UserSchema);
+export const User = mongoose.model<IUser>('User', UserSchema);
