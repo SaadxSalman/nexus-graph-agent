@@ -116,7 +116,8 @@ nexus/
 
 Feel free to fork this project and submit PRs. For major changes, please open an issue first to discuss what you would like to change.
 
-**Developed with ❤️ by [Saad Salman**](https://github.com/saadxsalman)
+**Developed with ❤️ by [Saad Salman](https://github.com/saadxsalman)**
+
 
 ---
  
