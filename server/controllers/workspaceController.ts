@@ -19,3 +19,9 @@ export const getWorkspaceDetails = async (workspaceId: string) => {
     },
   ]);
 };
+
+export const getTaskWithUser = async (taskId: string) => {
+  return await Task.findById(taskId)
+    .populate('assignee', 'name email image') // Only fetch these fields
+    .exec();
+};
