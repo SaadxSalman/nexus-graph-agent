@@ -1,23 +1,13 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-const TaskSchema = new Schema({
-  title: { type: String, required: true },
-  description: { type: String },
-  status: { type: String, default: 'todo' },
-  priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
-  assignees: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-  boardId: { type: Schema.Types.ObjectId, ref: 'Board', required: true },
-  order: { type: Number, default: 0 }
-}, { timestamps: true });
+export interface IBoard extends Document {
+  title: string;
+  workspaceId: mongoose.Types.ObjectId;
+}
 
-const BoardSchema = new Schema({
+const BoardSchema = new Schema<IBoard>({
   title: { type: String, required: true },
   workspaceId: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
-  lists: [{
-    name: { type: String, required: true },
-    taskOrder: [{ type: Schema.Types.ObjectId, ref: 'Task' }]
-  }]
-}, { timestamps: true });
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
-export const Task = model('Task', TaskSchema);
-export const Board = model('Board', BoardSchema);
+export const Board = mongoose.model<IBoard>('Board', BoardSchema);
