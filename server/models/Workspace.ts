@@ -14,4 +14,12 @@ const WorkspaceSchema = new Schema<IWorkspace>({
   slug: { type: String, unique: true, lowercase: true },
 }, { timestamps: true });
 
+
+WorkspaceSchema.pre('save', function(next) {
+  if (this.isModified('name')) {
+    this.slug = this.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+  }
+  next();
+});
+
 export const Workspace = mongoose.model<IWorkspace>('Workspace', WorkspaceSchema);
