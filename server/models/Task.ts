@@ -20,4 +20,12 @@ const TaskSchema = new Schema<ITask>({
   deletedAt: { type: Date, default: null },
 }, { timestamps: true });
 
+TaskSchema.index({ title: 'text' });
+TaskSchema.index({ boardId: 1 }); // Optimizes fetching tasks for a specific board
+
+TaskSchema.pre(/^find/, function(next) {
+  this.where({ deletedAt: null });
+  next();
+});
+
 export const Task = mongoose.model<ITask>('Task', TaskSchema);
