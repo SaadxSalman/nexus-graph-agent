@@ -12,3 +12,11 @@ export default function BoardPage() {
     </div>
   );
 }
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const board = await getBoard(params.id);
+  return {
+    title: `Nexus | ${board.title}`,
+    description: `Manage tasks for ${board.title} in real-time.`,
+  };
+}
