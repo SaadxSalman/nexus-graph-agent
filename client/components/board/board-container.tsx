@@ -1,18 +1,25 @@
 // client/components/board/board-container.tsx
-const onDragEnd = (result: any) => {
-  const { destination, source, type } = result;
-  if (!destination) return;
+"use client";
 
-  // Logic to reorder locally
-  const newBoardData = reorderTasks(boardData, source, destination);
-  
-  // 1. Update UI Optimistically
-  setBoardData(newBoardData);
+import { useMemo, useState } from "react";
+import { BoardSearch } from "./board-search";
 
-  // 2. Sync with MongoDB
-  updateTaskOrderMutation.mutate({
-    taskId: result.draggableId,
-    newColumnId: destination.droppableId,
-    newIndex: destination.index
-  });
+export const BoardContainer = ({ initialTasks }: { initialTasks: any[] }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredTasks = useMemo(() => {
+    if (!searchQuery) return initialTasks;
+    
+    return initialTasks.filter(task => 
+      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [initialTasks, searchQuery]);
+
+  return (
+    <div className="space-y-4">
+      <BoardSearch value={searchQuery} onChange={setSearchQuery} />
+      {/* Pass filteredTasks to your Kanban Columns here */}
+    </div>
+  );
 };
