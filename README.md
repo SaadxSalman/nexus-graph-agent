@@ -3,7 +3,7 @@
 
 ![Nexus](Nexus.png)
 
-# 🚀 Nexus | Enterprise Project Management Platform
+# 🚀 Nexus | Enterprise Project Management Platform.
 
 **Nexus** is a high-performance, real-time collaboration tool designed to streamline project workflows. Built with the modern MERN stack (Next.js 15, Tailwind, and TypeScript), it features a hybrid architecture using a dedicated Node.js microservice for real-time WebSockets.
 
