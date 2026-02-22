@@ -1,43 +1,28 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { LayoutGrid, MessageSquare, Activity, Plus, Loader2 } from "lucide-react";
-import { PrismaClient } from "@prisma/client";
-
-// --- SERVER ACTION (Simulated for single-file constraint) ---
-// In a real Next 15 app, you'd usually export this from a separate file 
-// or define it in a 'use server' block. 
-async function createTaskAction(formData: FormData) {
-  "use server";
-  const prisma = new PrismaClient();
-  const title = formData.get("title") as string;
-  
-  try {
-    const newTask = await prisma.task.create({
-      data: {
-        title,
-        status: "TODO",
-        priority: "MEDIUM",
-        // Note: In production, you'd pull workspaceId from a session/context
-        workspaceId: "65cb7f..." // Replace with a valid MongoDB ObjectId
-      },
-    });
-    return { success: true, task: newTask };
-  } catch (e) {
-    return { success: false, error: "Database Connection Failed" };
-  }
-}
+import { 
+  LayoutGrid, 
+  MessageSquare, 
+  Activity, 
+  Plus, 
+  Loader2, 
+  User as UserIcon 
+} from "lucide-react";
+import { createTaskAction } from "./actions";
 
 export default function NexusDashboard() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [typing, setTyping] = useState("");
   const [isPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
 
   // 1. Initialize Real-time "Pulse" Connection
   useEffect(() => {
-    const s = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001", {
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+    const s = io(socketUrl, {
       auth: { workspaceId: "enterprise-main-01" }
     });
 
@@ -55,22 +40,26 @@ export default function NexusDashboard() {
   }, []);
 
   // 2. Handle Task Creation (Server Action + Socket Broadcast)
-  const handleCreateTask = async (formData: FormData) => {
+  const clientAction = async (formData: FormData) => {
     const title = formData.get("title") as string;
     if (!title) return;
 
     startTransition(async () => {
-      // Step A: Save to MongoDB (Source of Truth)
+      // Step A: Save to MongoDB via Server Action
       const result = await createTaskAction(formData);
       
       if (result.success) {
-        // Step B: Broadcast to Pulse Server (Real-time)
+        // Step B: Reset form
+        formRef.current?.reset();
+
+        // Step C: Broadcast to Pulse Server
         socket?.emit("task_update", { 
           title: result.task?.title, 
           status: "CREATED", 
           user: "saadxsalman" 
         });
-        socket?.emit("typing", "saadxsalman");
+      } else {
+        alert(result.error);
       }
     });
   };
@@ -95,7 +84,6 @@ export default function NexusDashboard() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Kanban Columns */}
         <section className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Column: TODO */}
           <div className="kanban-column">
@@ -103,16 +91,16 @@ export default function NexusDashboard() {
               <h3 className="flex items-center gap-2 font-semibold text-zinc-400">
                 <LayoutGrid size={16} /> Todo
               </h3>
-              <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-500">3</span>
+              <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-500">Live</span>
             </div>
 
-            {/* Quick Add Form */}
-            <form action={handleCreateTask} className="mb-4">
+            <form ref={formRef} action={clientAction} className="mb-4">
               <div className="relative">
                 <input 
                   name="title"
                   placeholder="New task..." 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                  onKeyDown={() => socket?.emit("typing", "saadxsalman")}
                 />
                 <button 
                   type="submit" 
@@ -130,14 +118,12 @@ export default function NexusDashboard() {
             </div>
           </div>
 
-          {/* Column: IN PROGRESS */}
           <div className="kanban-column opacity-60">
             <h3 className="flex items-center gap-2 mb-6 font-semibold text-zinc-400">
               <Activity size={16} /> In Progress
             </h3>
           </div>
 
-          {/* Column: DONE */}
           <div className="kanban-column opacity-60">
             <h3 className="flex items-center gap-2 mb-6 font-semibold text-zinc-400">
               <Activity size={16} /> Done
@@ -145,7 +131,6 @@ export default function NexusDashboard() {
           </div>
         </section>
 
-        {/* Enterprise Activity Audit Log */}
         <aside className="space-y-6">
           <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 backdrop-blur-sm">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-500 mb-6 flex items-center gap-2">
@@ -156,16 +141,14 @@ export default function NexusDashboard() {
                 <div key={i} className="relative pl-6 pb-2 border-l border-zinc-800 last:border-0">
                   <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-indigo-500" />
                   <p className="text-xs font-medium text-white">{log.user}</p>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">
-                    {log.action}
-                  </p>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">{log.action}</p>
                   <span className="text-[9px] text-zinc-700 font-mono">
                     {new Date(log.time).toLocaleTimeString()}
                   </span>
                 </div>
               ))}
               {logs.length === 0 && (
-                <p className="text-zinc-600 text-xs italic text-center py-4">No recent activity detected.</p>
+                <p className="text-zinc-600 text-xs italic text-center py-4">No recent activity.</p>
               )}
             </div>
           </div>
@@ -180,7 +163,6 @@ export default function NexusDashboard() {
   );
 }
 
-// Sub-component for clean UI
 function TaskCard({ title, priority }: { title: string, priority: string }) {
   return (
     <div className="group p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-600 transition-all cursor-grab active:cursor-grabbing">
@@ -190,7 +172,7 @@ function TaskCard({ title, priority }: { title: string, priority: string }) {
         }`}>
           {priority}
         </span>
-        <User size={14} className="text-zinc-600" />
+        <UserIcon size={14} className="text-zinc-600" />
       </div>
       <h4 className="text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">{title}</h4>
     </div>

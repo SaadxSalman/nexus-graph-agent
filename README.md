@@ -78,4 +78,37 @@ Feel free to fork this project and submit PRs. For major changes, please open an
 
 
 ---
- 
+
+### 📂 Nexus Project Structure
+
+```text
+nexus-enterprise-pm-platform/  (Root Directory)
+├── .env                       # Shared Environment Variables (DB URL, Socket URL)
+├── .gitignore                 # Shared Git ignore rules
+├── package.json               # Root runner (Scripts: install-all, dev, db:push)
+├── package-lock.json          # Root lockfile (Delete C:\Users\saad\package-lock.json)
+├── prisma.config.ts           # Prisma 7 Configuration (Loads DATABASE_URL)
+├── prisma/                    # Source of Truth Schema
+│   └── schema.prisma          # Database Models
+│
+├── backend/                   # "The Pulse" (Socket.io Microservice)
+│   ├── src/
+│   │   └── index.ts           # WebSocket logic & Event broadcasting
+│   ├── package.json           # Backend dependencies & scripts
+│   ├── tsconfig.json          # Backend TS config (ES Modules)
+│   └── node_modules/
+│
+└── frontend/                  # "The Core" (Next.js 16 + React 19)
+    ├── src/
+    │   └── app/
+    │       ├── layout.tsx     # Global Shell & Navigation
+    │       ├── page.tsx       # Dashboard UI & Real-time State
+    │       └── globals.css    # Tailwind 4 / Global Styles
+    ├── package.json           # Frontend dependencies & Next scripts
+    ├── tsconfig.json          # Frontend TS config
+    ├── next.config.ts         # Next.js configuration
+    └── node_modules/
+
+```
+
+---

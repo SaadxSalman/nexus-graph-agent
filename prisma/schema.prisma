@@ -1,30 +1,31 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 model Workspace {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  slug      String   @unique
-  users     User[]
-  tasks     Task[]
-  createdAt DateTime @default(now())
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  slug       String     @unique
+  users      User[]
+  tasks      Task[]
+  activities Activity[] // Link activities to workspace for multi-tenant isolation
+  createdAt  DateTime   @default(now())
 }
 
 model User {
-  id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  email        String     @unique
-  name         String?
-  workspaceId  String     @db.ObjectId
-  workspace    Workspace  @relation(fields: [workspaceId], references: [id])
-  tasks        Task[]     @relation("AssignedTasks")
-  activities   Activity[]
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  email       String     @unique
+  name        String?
+  image       String?    // Added for Presence Avatars
+  workspaceId String     @db.ObjectId
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id])
+  tasks       Task[]     @relation("AssignedTasks")
+  activities  Activity[]
 }
 
 model Task {
@@ -34,19 +35,26 @@ model Task {
   status      Status    @default(TODO)
   priority    Priority  @default(MEDIUM)
   workspaceId String    @db.ObjectId
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assigneeId  String?   @db.ObjectId
   assignee    User?     @relation("AssignedTasks", fields: [assigneeId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
 }
 
 model Activity {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  action    String
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  action      String    // e.g., "moved Task X to DONE"
+  userId      String    @db.ObjectId
+  user        User      @relation(fields: [userId], references: [id])
+  workspaceId String    @db.ObjectId
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId])
+  @@index([userId])
 }
 
 enum Status {
