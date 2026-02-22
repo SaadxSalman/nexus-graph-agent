@@ -15,8 +15,8 @@ I've added the "missing links"—specifically for file storage, background jobs,
 | **Real-time** | **Socket.io + Redis Adapter** | Scalable WebSockets with Pub/Sub support |
 | **Database** | **MongoDB + Prisma/Mongoose** | Complex relations & Transaction support |
 | **Cache/Queue** | **Upstash Redis** | Rate limiting, Socket state, and Task Queues |
-| **Storage** | **Uploadthing / AWS S3** | Enterprise asset management (Attachments/Avatars) |
-| **Monitoring** | **Sentry / PostHog** | Error tracking and user behavior analytics |
+| **Storage** | **Uploadthing** | Enterprise asset management (Attachments/Avatars) |
+| **Monitoring** | **PostHog** | Error tracking and user behavior analytics |
 
 ---
 
