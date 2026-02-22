@@ -12,19 +12,27 @@ import {
 } from "lucide-react";
 import { createTaskAction } from "./actions";
 
+// This should match the ID in your prisma/seed.ts
+const WORKSPACE_ID = "enterprise-main-01";
+
 export default function NexusDashboard() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [typing, setTyping] = useState("");
   const [isPending, startTransition] = useTransition();
+  
   const formRef = useRef<HTMLFormElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 1. Initialize Real-time "Pulse" Connection
   useEffect(() => {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+    
     const s = io(socketUrl, {
-      auth: { workspaceId: "enterprise-main-01" }
+      auth: { workspaceId: WORKSPACE_ID }
     });
+
+    s.on("connect", () => console.log("✅ Pulse Connected"));
 
     s.on("activity_log", (log) => {
       setLogs(prev => [log, ...prev].slice(0, 8));
@@ -32,33 +40,41 @@ export default function NexusDashboard() {
 
     s.on("user_typing", (user) => {
       setTyping(`${user} is editing...`);
-      setTimeout(() => setTyping(""), 2000);
+      
+      // Clear existing timeout if user keeps typing
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        setTyping("");
+      }, 2000);
     });
 
     setSocket(s);
-    return () => { s.disconnect(); };
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      s.disconnect();
+    };
   }, []);
 
   // 2. Handle Task Creation (Server Action + Socket Broadcast)
   const clientAction = async (formData: FormData) => {
-    const title = formData.get("title") as string;
-    if (!title) return;
-
     startTransition(async () => {
-      // Step A: Save to MongoDB via Server Action
-      const result = await createTaskAction(formData);
+      // Step A: Save to MongoDB via Server Action (Passing WORKSPACE_ID)
+      const result = await createTaskAction(formData, WORKSPACE_ID);
       
       if (result.success) {
-        // Step B: Reset form
+        // Step B: Reset UI
         formRef.current?.reset();
 
-        // Step C: Broadcast to Pulse Server
+        // Step C: Broadcast to Pulse Server for instant team update
         socket?.emit("task_update", { 
           title: result.task?.title, 
           status: "CREATED", 
           user: "saadxsalman" 
         });
       } else {
+        console.error("Task creation failed:", result.error);
         alert(result.error);
       }
     });
@@ -85,6 +101,7 @@ export default function NexusDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <section className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+          
           {/* Column: TODO */}
           <div className="kanban-column">
             <div className="flex justify-between items-center mb-6">
@@ -98,6 +115,7 @@ export default function NexusDashboard() {
               <div className="relative">
                 <input 
                   name="title"
+                  autoComplete="off"
                   placeholder="New task..." 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                   onKeyDown={() => socket?.emit("typing", "saadxsalman")}
@@ -105,9 +123,9 @@ export default function NexusDashboard() {
                 <button 
                   type="submit" 
                   disabled={isPending}
-                  className="absolute right-2 top-1.5 text-zinc-500 hover:text-white"
+                  className="absolute right-2 top-1.5 text-zinc-500 hover:text-white transition-colors"
                 >
-                  {isPending ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                  {isPending ? <Loader2 size={18} className="animate-spin text-indigo-500" /> : <Plus size={18} />}
                 </button>
               </div>
             </form>
@@ -132,16 +150,16 @@ export default function NexusDashboard() {
         </section>
 
         <aside className="space-y-6">
-          <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 backdrop-blur-sm">
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 backdrop-blur-sm h-[450px] flex flex-col">
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-500 mb-6 flex items-center gap-2">
               <MessageSquare size={14} /> Audit Log
             </h3>
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto custom-scrollbar pr-2">
               {logs.map((log, i) => (
                 <div key={i} className="relative pl-6 pb-2 border-l border-zinc-800 last:border-0">
-                  <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-indigo-500" />
+                  <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
                   <p className="text-xs font-medium text-white">{log.user}</p>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">{log.action}</p>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">{log.action}</p>
                   <span className="text-[9px] text-zinc-700 font-mono">
                     {new Date(log.time).toLocaleTimeString()}
                   </span>
@@ -153,7 +171,7 @@ export default function NexusDashboard() {
             </div>
           </div>
 
-          <div className="p-4 rounded-xl border border-dashed border-zinc-800 text-center">
+          <div className="p-4 rounded-xl border border-dashed border-zinc-800 text-center bg-black/20">
              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Storage Status</p>
              <p className="text-xs font-bold text-green-500 mt-1">MongoDB Synchronized</p>
           </div>
@@ -165,14 +183,14 @@ export default function NexusDashboard() {
 
 function TaskCard({ title, priority }: { title: string, priority: string }) {
   return (
-    <div className="group p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-600 transition-all cursor-grab active:cursor-grabbing">
+    <div className="group p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-600 transition-all cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-indigo-500/5">
       <div className="flex justify-between items-start mb-3">
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
           priority === 'URGENT' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'
         }`}>
           {priority}
         </span>
-        <UserIcon size={14} className="text-zinc-600" />
+        <UserIcon size={14} className="text-zinc-600 group-hover:text-zinc-400 transition-colors" />
       </div>
       <h4 className="text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">{title}</h4>
     </div>

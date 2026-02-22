@@ -2,34 +2,41 @@
 
 import { PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import dotenv from "dotenv";
+import path from "path";
 
-// 1. Ensure Prisma is a Singleton
-// This prevents exhausting your MongoDB connection pool during development
+// 1. Point to the ROOT directory .env (one level up from /frontend)
+dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
+
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
+/**
+ * FIXED: The property name is 'datasources' (plural) BUT it must contain 
+ * the 'db' key with the 'url' property.
+ */
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    log: ["query"], // Useful for debugging "The Pulse" during dev
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-/**
- * Creates a new task in the database.
- * @param formData - The form data from the client
- * @param workspaceId - The specific tenant ID this task belongs to
- */
 export async function createTaskAction(formData: FormData, workspaceId: string) {
   const title = formData.get("title") as string;
+  
+  // Terminal log to ensure your root .env is being read
+  console.log("-----------------------------------------");
+  console.log("📡 SERVER ACTION: Attempting Task Creation");
+  console.log("🔑 DB URL DETECTED:", process.env.DATABASE_URL ? "YES" : "NO");
+  console.log("-----------------------------------------");
 
-  // Validation
-  if (!title || title.trim() === "") {
-    return { success: false, error: "Task title is required" };
-  }
-
-  if (!workspaceId) {
-    return { success: false, error: "Tenant Context (WorkspaceId) missing" };
+  if (!title || !workspaceId) {
+    return { success: false, error: "Missing title or workspace context" };
   }
 
   try {
@@ -38,28 +45,21 @@ export async function createTaskAction(formData: FormData, workspaceId: string) 
         title: title.trim(),
         status: "TODO",
         priority: "MEDIUM",
-        // Connect to existing workspace via ID
-        workspace: {
-          connect: { id: workspaceId },
-        },
+        workspaceId: workspaceId,
       },
     });
 
-    // Clear Next.js cache for the dashboard so the new task appears
     revalidatePath("/");
-
+    
     return { 
       success: true, 
-      task: JSON.parse(JSON.stringify(newTask)) // Ensure POJO for Client Components
+      task: JSON.parse(JSON.stringify(newTask)) 
     };
-  } catch (error: any) {
-    console.error("❌ Prisma Action Error:", error.message);
-    
-    // Check if it's a connection error specifically
-    if (error.code === 'P1001') {
-      return { success: false, error: "Cannot reach MongoDB. Check your IP whitelist." };
-    }
-
-    return { success: false, error: "Database transaction failed." };
+  } catch (e: any) {
+    console.error("❌ Prisma Database Error:", e.message);
+    return { 
+      success: false, 
+      error: e.message || "Database error occurred." 
+    };
   }
 }

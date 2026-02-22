@@ -82,30 +82,33 @@ Feel free to fork this project and submit PRs. For major changes, please open an
 ### 📂 Nexus Project Structure
 
 ```text
-nexus-enterprise-pm-platform/  (Root Directory)
-├── .env                       # Shared Environment Variables (DB URL, Socket URL)
-├── .gitignore                 # Shared Git ignore rules
-├── package.json               # Root runner (Scripts: install-all, dev, db:push)
-├── package-lock.json          # Root lockfile (Delete C:\Users\saad\package-lock.json)
-├── prisma.config.ts           # Prisma 7 Configuration (Loads DATABASE_URL)
-├── prisma/                    # Source of Truth Schema
-│   └── schema.prisma          # Database Models
+nexus-enterprise-pm-platform/
+├── .env                       # Master environment variables (DB_URL, REDIS_URL)
+├── .gitignore                 # Root ignore (node_modules, .next, .env)
+├── package.json               # Root runner (using concurrently to start both)
 │
-├── backend/                   # "The Pulse" (Socket.io Microservice)
+├── prisma/                    # Shared Database Layer
+│   ├── schema.prisma          # Final updated schema (String IDs for Workspace)
+│   └── seed.ts                # Database seed script for "enterprise-main-01"
+│
+├── backend/                   # "The Pulse" (Node.js + Socket.io)
 │   ├── src/
-│   │   └── index.ts           # WebSocket logic & Event broadcasting
-│   ├── package.json           # Backend dependencies & scripts
-│   ├── tsconfig.json          # Backend TS config (ES Modules)
+│   │   └── index.ts           # Real-time logic & workspace rooms
+│   ├── package.json           # Backend scripts (using --import register for TS)
+│   ├── tsconfig.json          # Target: ESNext
 │   └── node_modules/
 │
 └── frontend/                  # "The Core" (Next.js 16 + React 19)
+    ├── .env                   # Copy of master .env for Next.js visibility
     ├── src/
-    │   └── app/
-    │       ├── layout.tsx     # Global Shell & Navigation
-    │       ├── page.tsx       # Dashboard UI & Real-time State
-    │       └── globals.css    # Tailwind 4 / Global Styles
-    ├── package.json           # Frontend dependencies & Next scripts
-    ├── tsconfig.json          # Frontend TS config
+    │   ├── app/
+    │   │   ├── actions.ts     # Updated Server Actions (revalidatePath added)
+    │   │   ├── layout.tsx     # Global shell & Nav
+    │   │   ├── page.tsx       # Real-time Dashboard UI
+    │   │   └── globals.css    # Tailwind 4 styles
+    │   └── components/        # (Optional) Reusable UI components
+    ├── package.json           # Updated with prisma seed & ts-node
+    ├── tsconfig.json          # Strict mode enabled
     ├── next.config.ts         # Next.js configuration
     └── node_modules/
 

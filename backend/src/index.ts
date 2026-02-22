@@ -17,7 +17,6 @@ const io = new Server(httpServer, {
   }
 });
 
-// Middleware for Multi-tenant Workspace Isolation
 io.use((socket, next) => {
   const workspaceId = socket.handshake.auth.workspaceId;
   if (!workspaceId) return next(new Error("Invalid Workspace"));
@@ -29,28 +28,26 @@ io.on('connection', (socket) => {
   const workspaceId = (socket as any).workspaceId;
   socket.join(workspaceId);
   
-  console.log(`🚀 User connected to Workspace: ${workspaceId}`);
+  console.log(`🚀 Pulse: Connected to ${workspaceId}`);
 
-  // Presence Indicator: Broadcast "User is typing"
   socket.on('typing', (data) => {
     socket.to(workspaceId).emit('user_typing', data);
   });
 
-  // Activity Feed: Task Updates
   socket.on('task_update', (task) => {
     io.to(workspaceId).emit('activity_log', {
       user: task.user,
-      action: `moved ${task.title} to ${task.status}`,
+      action: `created task: ${task.title}`,
       time: new Date()
     });
   });
 
-  socket.on('disconnect', () => {
-    console.log('❌ User disconnected');
+  socket.on('disconnect', (reason) => {
+    if (reason !== "client namespace disconnect") {
+      console.log(`❌ Pulse: User left (${reason})`);
+    }
   });
 });
 
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
-  console.log(`📡 Pulse Server running on port ${PORT}`);
-});
+httpServer.listen(PORT, () => console.log(`📡 Pulse Server running on port ${PORT}`));
