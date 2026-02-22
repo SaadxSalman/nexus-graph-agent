@@ -1,21 +1,52 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useTransition } from "react";
 import { io, Socket } from "socket.io-client";
-import { LayoutGrid, MessageSquare, Activity, User } from "lucide-react";
+import { LayoutGrid, MessageSquare, Activity, Plus, Loader2 } from "lucide-react";
+import { PrismaClient } from "@prisma/client";
+
+// --- SERVER ACTION (Simulated for single-file constraint) ---
+// In a real Next 15 app, you'd usually export this from a separate file 
+// or define it in a 'use server' block. 
+async function createTaskAction(formData: FormData) {
+  "use server";
+  const prisma = new PrismaClient();
+  const title = formData.get("title") as string;
+  
+  try {
+    const newTask = await prisma.task.create({
+      data: {
+        title,
+        status: "TODO",
+        priority: "MEDIUM",
+        // Note: In production, you'd pull workspaceId from a session/context
+        workspaceId: "65cb7f..." // Replace with a valid MongoDB ObjectId
+      },
+    });
+    return { success: true, task: newTask };
+  } catch (e) {
+    return { success: false, error: "Database Connection Failed" };
+  }
+}
 
 export default function NexusDashboard() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [typing, setTyping] = useState("");
+  const [isPending, startTransition] = useTransition();
 
+  // 1. Initialize Real-time "Pulse" Connection
   useEffect(() => {
     const s = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001", {
       auth: { workspaceId: "enterprise-main-01" }
     });
 
-    s.on("activity_log", (log) => setLogs(prev => [log, ...prev].slice(0, 5)));
+    s.on("activity_log", (log) => {
+      setLogs(prev => [log, ...prev].slice(0, 8));
+    });
+
     s.on("user_typing", (user) => {
-      setTyping(`${user} is moving a task...`);
+      setTyping(`${user} is editing...`);
       setTimeout(() => setTyping(""), 2000);
     });
 
@@ -23,58 +54,145 @@ export default function NexusDashboard() {
     return () => { s.disconnect(); };
   }, []);
 
-  const triggerUpdate = (status: string) => {
-    socket?.emit("task_update", { title: "API Integration", status, user: "Saad" });
-    socket?.emit("typing", "Saad");
+  // 2. Handle Task Creation (Server Action + Socket Broadcast)
+  const handleCreateTask = async (formData: FormData) => {
+    const title = formData.get("title") as string;
+    if (!title) return;
+
+    startTransition(async () => {
+      // Step A: Save to MongoDB (Source of Truth)
+      const result = await createTaskAction(formData);
+      
+      if (result.success) {
+        // Step B: Broadcast to Pulse Server (Real-time)
+        socket?.emit("task_update", { 
+          title: result.task?.title, 
+          status: "CREATED", 
+          user: "saadxsalman" 
+        });
+        socket?.emit("typing", "saadxsalman");
+      }
+    });
   };
 
   return (
-    <main className="max-w-7xl mx-auto p-8">
-      <header className="mb-12">
-        <h2 className="text-3xl font-bold mb-2">Workspace Overview</h2>
-        <p className="text-zinc-500 italic">{typing || "All systems operational"}</p>
+    <main className="max-w-7xl mx-auto p-8 animate-in fade-in duration-700">
+      <header className="mb-12 flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Project Board</h2>
+          <p className="text-zinc-500 mt-1 h-5">{typing || "Real-time sync active"}</p>
+        </div>
+        <div className="flex -space-x-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="w-8 h-8 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center text-[10px] font-bold">
+              U{i}
+            </div>
+          ))}
+          <div className="w-8 h-8 rounded-full border-2 border-black bg-indigo-600 flex items-center justify-center text-[10px]">
+            +5
+          </div>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Kanban Board Mockup */}
-        <section className="lg:col-span-2 grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Kanban Columns */}
+        <section className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Column: TODO */}
           <div className="kanban-column">
-            <h3 className="flex items-center gap-2 mb-4 font-semibold text-zinc-400">
-              <LayoutGrid size={18} /> Todo
-            </h3>
-            <div 
-              onClick={() => triggerUpdate("In Progress")}
-              className="p-4 bg-zinc-800 rounded-lg border border-zinc-700 cursor-pointer hover:border-indigo-500 transition-all"
-            >
-              <h4 className="font-medium">API Integration</h4>
-              <p className="text-xs text-zinc-500 mt-2">High Priority • Enterprise</p>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="flex items-center gap-2 font-semibold text-zinc-400">
+                <LayoutGrid size={16} /> Todo
+              </h3>
+              <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-500">3</span>
+            </div>
+
+            {/* Quick Add Form */}
+            <form action={handleCreateTask} className="mb-4">
+              <div className="relative">
+                <input 
+                  name="title"
+                  placeholder="New task..." 
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+                <button 
+                  type="submit" 
+                  disabled={isPending}
+                  className="absolute right-2 top-1.5 text-zinc-500 hover:text-white"
+                >
+                  {isPending ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+                </button>
+              </div>
+            </form>
+
+            <div className="space-y-3">
+              <TaskCard title="Setup Authentication" priority="URGENT" />
+              <TaskCard title="Design System Tokens" priority="MEDIUM" />
             </div>
           </div>
-          <div className="kanban-column">
-            <h3 className="flex items-center gap-2 mb-4 font-semibold text-zinc-400">
-              <Activity size={18} /> In Progress
+
+          {/* Column: IN PROGRESS */}
+          <div className="kanban-column opacity-60">
+            <h3 className="flex items-center gap-2 mb-6 font-semibold text-zinc-400">
+              <Activity size={16} /> In Progress
+            </h3>
+          </div>
+
+          {/* Column: DONE */}
+          <div className="kanban-column opacity-60">
+            <h3 className="flex items-center gap-2 mb-6 font-semibold text-zinc-400">
+              <Activity size={16} /> Done
             </h3>
           </div>
         </section>
 
-        {/* Real-time Activity Feed */}
+        {/* Enterprise Activity Audit Log */}
         <aside className="space-y-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
-              <MessageSquare size={16} /> Activity Feed
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 backdrop-blur-sm">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-500 mb-6 flex items-center gap-2">
+              <MessageSquare size={14} /> Audit Log
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {logs.map((log, i) => (
-                <div key={i} className="text-sm border-l-2 border-indigo-500 pl-4 py-1">
-                  <span className="font-bold text-white">{log.user}</span> 
-                  <span className="text-zinc-400"> {log.action}</span>
+                <div key={i} className="relative pl-6 pb-2 border-l border-zinc-800 last:border-0">
+                  <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-indigo-500" />
+                  <p className="text-xs font-medium text-white">{log.user}</p>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    {log.action}
+                  </p>
+                  <span className="text-[9px] text-zinc-700 font-mono">
+                    {new Date(log.time).toLocaleTimeString()}
+                  </span>
                 </div>
               ))}
-              {logs.length === 0 && <p className="text-zinc-600 text-xs italic">Waiting for interactions...</p>}
+              {logs.length === 0 && (
+                <p className="text-zinc-600 text-xs italic text-center py-4">No recent activity detected.</p>
+              )}
             </div>
+          </div>
+
+          <div className="p-4 rounded-xl border border-dashed border-zinc-800 text-center">
+             <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Storage Status</p>
+             <p className="text-xs font-bold text-green-500 mt-1">MongoDB Synchronized</p>
           </div>
         </aside>
       </div>
     </main>
+  );
+}
+
+// Sub-component for clean UI
+function TaskCard({ title, priority }: { title: string, priority: string }) {
+  return (
+    <div className="group p-4 bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-600 transition-all cursor-grab active:cursor-grabbing">
+      <div className="flex justify-between items-start mb-3">
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+          priority === 'URGENT' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'
+        }`}>
+          {priority}
+        </span>
+        <User size={14} className="text-zinc-600" />
+      </div>
+      <h4 className="text-sm font-medium text-zinc-200 group-hover:text-white transition-colors">{title}</h4>
+    </div>
   );
 }

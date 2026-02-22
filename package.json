@@ -22,6 +22,10 @@
   },
   "homepage": "https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform#readme",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "prisma": "^7.4.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.4.1"
   }
 }
