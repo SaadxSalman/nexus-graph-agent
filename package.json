@@ -3,30 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "description": "Nexus Enterprise PM Platform - Monorepo",
-  "main": "index.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
     "dev": "npx concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:push": "npx prisma db push",
+    "db:gen": "npx prisma generate"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform.git"
-  },
-  "keywords": [],
   "author": "saadxsalman",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform/issues"
-  },
-  "homepage": "https://github.com/SaadxSalman/Nexus-Enterprise-PM-Platform#readme",
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "prisma": "^7.4.1"
+    "prisma": "^7.4.1",
+    "tsx": "^4.7.1"
   },
   "dependencies": {
     "@prisma/client": "^7.4.1",
-    "dotenv": "^17.3.1"
+    "dotenv": "^17.3.1",
+    "@prisma/config": "^7.4.1"
   }
 }
