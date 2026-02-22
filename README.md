@@ -1,116 +1,72 @@
 
 ---
 
-![Nexus](Nexus.png)
-
 # 🚀 Nexus | Enterprise Project Management Platform
 
-**Nexus** is a high-performance, real-time collaboration tool designed to streamline project workflows. Built with the modern MERN stack (Next.js 15, Tailwind, and TypeScript), it features a hybrid architecture using a dedicated Node.js microservice for real-time WebSockets.
+**Nexus** is a high-performance, real-time collaboration tool designed to streamline complex project workflows. By leveraging a **Hybrid Microservice Architecture**, Nexus ensures millisecond-latency for team interactions while maintaining the SEO and speed of Next.js 15.
 
----
+## 🛠 Enhanced Tech Stack & Infrastructure
 
-## 🛠 Tech Stack
+I've added the "missing links"—specifically for file storage, background jobs, and cache management.
 
 | Layer | Technology | Key Usage |
 | --- | --- | --- |
-| **Frontend** | **Next.js 15 (App Router)** | Server Components, Streaming, and SEO |
-| **Styling** | **Tailwind CSS + Shadcn/UI** | Utility-first styling & accessible components |
-| **Language** | **TypeScript** | Type-safety across the entire stack |
-| **Real-time** | **Socket.io** | Live task updates and workspace chat |
-| **Database** | **MongoDB (Mongoose)** | NoSQL schema with Aggregation Pipelines |
-| **Backend** | **Node.js / Express** | Dedicated microservice for WebSocket handling |
-| **State** | **TanStack Query / Zustand** | Server-state caching and lightweight global state |
-| **Auth** | **NextAuth.js + JWT** | OAuth (GitHub/Google) and secure JWT tokens |
-| **Animations** | **Framer Motion** | Smooth UI transitions and drag-and-drop feedback |
+| **Frontend** | **Next.js 15 + React 19** | Server Components & **Server Actions** |
+| **Real-time** | **Socket.io + Redis Adapter** | Scalable WebSockets with Pub/Sub support |
+| **Database** | **MongoDB + Prisma/Mongoose** | Complex relations & Transaction support |
+| **Cache/Queue** | **Upstash Redis** | Rate limiting, Socket state, and Task Queues |
+| **Storage** | **Uploadthing / AWS S3** | Enterprise asset management (Attachments/Avatars) |
+| **Monitoring** | **Sentry / PostHog** | Error tracking and user behavior analytics |
 
 ---
 
-## ✨ Key Features
+## ✨ Advanced Enterprise Features (The Missing Pieces)
 
-* **Kanban Boards:** Advanced drag-and-drop task management powered by `@hello-pangea/dnd`.
-* **Real-time Collaboration:** Instant updates when teammates move cards or edit descriptions.
-* **Workspace Chat:** Built-in messaging system for every project room using WebSockets.
-* **Smart Search:** High-performance task filtering using MongoDB indexing.
-* **Role-Based Access (RBAC):** Granular permissions for Workspace Owners, Members, and Viewers.
-* **Optimistic Updates:** Immediate UI feedback for actions like renaming boards or deleting tasks.
-* **Dark Mode:** Native support via `next-themes`.
+To make this "Enterprise," we need to move beyond simple CRUD:
 
----
-
-## 🏗 System Architecture
-
-Nexus uses a **Hybrid Infrastructure**:
-
-1. **Client/Server (Next.js):** Deployed on Vercel. Handles the main UI and data-fetching via Server Actions.
-2. **Socket Microservice (Node/Express):** Deployed on a persistent server (e.g., Render/Railway). Handles long-lived WebSocket connections for real-time features.
-3. **Database (MongoDB Atlas):** Managed cloud database with Mongoose ODM.
+* **Multi-Tenant Workspaces:** Isolated data environments for different organizations.
+* **Activity Feeds:** An immutable audit log of every change (Who moved Task X to "Done"?).
+* **Rich Text Documentation:** Notion-style project briefs using **Tiptap** or **BlockNote**.
+* **Presence Indicators:** "Who’s online" avatars in the header and "User is typing" in chat.
+* **Automated Workflows:** GitHub-style triggers (e.g., "When task moves to 'Review', tag @Manager").
+* **Performance Monitoring:** Custom OpenGraph images for project sharing and 100/100 Lighthouse scores.
 
 ---
 
-## 🚀 Getting Started
+## 🏗 Detailed System Architecture
 
-### Prerequisites
+Nexus operates on a **Triad Architecture** to ensure high availability:
 
-* Node.js 18+
-* MongoDB Atlas Account
-* GitHub/Google OAuth credentials
+### 1. The Core (Next.js 15)
 
-### Installation
+* **Server Actions:** Used for 90% of mutations (Creating tasks, updating profiles).
+* **PPR (Partial Prerendering):** Static shell for the dashboard with dynamic "Live" task holes.
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/saadsalmanakram/nexus.git
-cd nexus
+### 2. The Pulse (Node.js Microservice)
 
-```
+* Handles **Socket.io** namespaces for different Workspaces.
+* **Redis Streams:** Ensures that if you scale to multiple server instances, a message sent to Server A reaches a user on Server B.
 
+### 3. The Storage Layer
 
-2. **Setup Frontend (Next.js)**
-```bash
-cd client
-npm install
-cp .env.example .env.local
-npm run dev
-
-```
-
-
-3. **Setup Backend (Socket.io Server)**
-```bash
-cd ../server
-npm install
-cp .env.example .env
-npm start
-
-```
-
-
+* **MongoDB:** Stores the "Source of Truth."
+* **Redis:** Stores ephemeral data (who is currently looking at a specific Kanban board).
 
 ---
 
-## 🧪 Testing & Quality
+## 🚀 Critical "To-Do" for Production
 
-* **Unit/Integration:** Jest & React Testing Library.
-* **E2E:** Playwright for critical user flows (Login, Create Project, Move Task).
-* **Validation:** Zod for schema-first form and API validation.
+1. **Shared Types:** Create a `types` package. Both your Next.js frontend and Socket server must import the exact same `Task` and `User` interfaces to prevent runtime crashes.
+2. **Webhooks:** Setup a `/api/webhooks` route in Next.js to receive events from your Socket server or payment processors (Stripe).
+3. **CORS Policy:** Strictly define your production domain in the Socket.io initialization to prevent unauthorized cross-origin connections.
 
 ---
 
-## 📂 Repository Structure
+## 🧪 Quality Assurance Strategy
 
-```text
-nexus/
-├── client/              # Next.js frontend (App Router)
-│   ├── components/      # Shadcn + Custom UI
-│   ├── hooks/           # TanStack Query & Socket hooks
-│   └── app/             # Routes and Server Actions
-├── server/              # Node.js/Express WebSocket Microservice
-│   ├── models/          # Mongoose Schemas
-│   ├── socket/          # Socket.io event handlers
-│   └── controllers/     # Express route logic
-└── README.md
-
-```
+* **Load Testing:** Use **Artillery** to simulate 500 concurrent WebSocket users.
+* **Visual Regression:** Use **Percy** to ensure the Kanban board doesn't "break" on different screen sizes.
+* **Type Coverage:** Aim for `strict: true` in `tsconfig.json` to eliminate `any` types.
 
 ---
 
