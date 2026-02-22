@@ -8,12 +8,13 @@ datasource db {
 }
 
 model Workspace {
-  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  // We remove @default(auto()) and @db.ObjectId to allow custom string IDs
+  id         String     @id @map("_id") 
   name       String
   slug       String     @unique
   users      User[]
   tasks      Task[]
-  activities Activity[] // Link activities to workspace for multi-tenant isolation
+  activities Activity[] 
   createdAt  DateTime   @default(now())
 }
 
@@ -21,8 +22,8 @@ model User {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   email       String     @unique
   name        String?
-  image       String?    // Added for Presence Avatars
-  workspaceId String     @db.ObjectId
+  image       String?    
+  workspaceId String     // Changed to String to match Workspace.id
   workspace   Workspace  @relation(fields: [workspaceId], references: [id])
   tasks       Task[]     @relation("AssignedTasks")
   activities  Activity[]
@@ -34,7 +35,7 @@ model Task {
   description String?
   status      Status    @default(TODO)
   priority    Priority  @default(MEDIUM)
-  workspaceId String    @db.ObjectId
+  workspaceId String    // Changed to String to match Workspace.id
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assigneeId  String?   @db.ObjectId
   assignee    User?     @relation("AssignedTasks", fields: [assigneeId], references: [id])
@@ -46,10 +47,10 @@ model Task {
 
 model Activity {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  action      String    // e.g., "moved Task X to DONE"
+  action      String    
   userId      String    @db.ObjectId
   user        User      @relation(fields: [userId], references: [id])
-  workspaceId String    @db.ObjectId
+  workspaceId String    // Changed to String to match Workspace.id
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 
