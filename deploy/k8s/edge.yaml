@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-edge
+  namespace: nexus
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: nexus-edge}
+  template:
+    metadata:
+      labels: {app: nexus-edge}
+    spec:
+      containers:
+        - name: edge
+          image: nexus-edge:local
+          ports: [{containerPort: 8080}]
+          env:
+            - name: AGENT_BASE_URL
+              value: http://nexus-agent:8000
+            - name: RUST_API_PORT
+              value: "8080"
+          readinessProbe:
+            httpGet: {path: /health, port: 8080}
+            initialDelaySeconds: 3
+          livenessProbe:
+            httpGet: {path: /health, port: 8080}
+            initialDelaySeconds: 8
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-edge
+  namespace: nexus
+spec:
+  type: ClusterIP
+  selector: {app: nexus-edge}
+  ports: [{port: 8080, targetPort: 8080}]

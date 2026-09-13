@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus Graph Agent</title>
+  <style>
+    :root { --ink:#17211b; --muted:#627268; --paper:#f5f2e9; --panel:#fffdf8; --lime:#c9e86b; --line:#d8dfd2; --accent:#286a52; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 84% 8%, #dcebb7 0, transparent 28%), linear-gradient(135deg,#f5f2e9,#eaf0e5); font:16px/1.5 Georgia, serif; }
+    main { width:min(1180px,92vw); margin:0 auto; padding:54px 0 70px; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; gap:30px; margin-bottom:42px; }
+    .eyebrow { color:var(--accent); font:700 12px/1.2 Arial,sans-serif; letter-spacing:.15em; text-transform:uppercase; }
+    h1 { font-size:clamp(2.5rem,7vw,6rem); line-height:.92; letter-spacing:-.04em; margin:12px 0 16px; max-width:760px; }
+    .lede { color:var(--muted); max-width:620px; font-size:1.15rem; }
+    .status { border:1px solid var(--line); background:rgba(255,253,248,.75); padding:12px 15px; font:12px Arial,sans-serif; min-width:150px; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#e0a23c; margin-right:7px; }
+    .grid { display:grid; grid-template-columns:1.1fr .9fr; gap:18px; align-items:start; }
+    section { background:rgba(255,253,248,.84); border:1px solid var(--line); padding:26px; box-shadow:0 14px 35px rgba(41,65,45,.06); }
+    h2 { margin:0 0 18px; font-size:1.4rem; }
+    textarea { width:100%; min-height:170px; resize:vertical; border:1px solid var(--line); background:#fafbf4; padding:16px; color:var(--ink); font:18px/1.45 Georgia,serif; outline:none; }
+    textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(40,106,82,.12); }
+    button { margin-top:14px; padding:13px 18px; border:0; background:var(--ink); color:#fff; cursor:pointer; font:700 13px Arial,sans-serif; letter-spacing:.04em; }
+    button:disabled { opacity:.5; cursor:wait; }
+    .answer { min-height:260px; white-space:pre-wrap; color:#334238; }
+    .answer.empty { color:var(--muted); font-style:italic; }
+    .meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+    .pill { border:1px solid var(--line); padding:5px 9px; font:11px Arial,sans-serif; color:var(--muted); }
+    .sources { margin:0; padding-left:19px; color:var(--muted); }
+    .sources li { margin:9px 0; }
+    .sources a { color:var(--accent); }
+    .trace { grid-column:1/-1; display:grid; grid-template-columns:repeat(4,1fr); gap:10px; background:transparent; border:0; padding:0; box-shadow:none; }
+    .step { border-top:3px solid var(--lime); padding:12px 2px; font:12px Arial,sans-serif; color:var(--muted); }
+    .step strong { display:block; color:var(--ink); margin-bottom:5px; }
+    @media (max-width:720px) { main { padding-top:30px; } header { display:block; } .status { margin-top:20px; } .grid { grid-template-columns:1fr; } .trace { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">Nexus / Agentic Retrieval</div><h1>Ask the graph.<br>Trust the trail.</h1><div class="lede">A self-correcting investigation loop for questions that need more than one search box.</div></div>
+    <div class="status"><span class="dot" id="status-dot"></span><span id="status-text">checking edge</span></div>
+  </header>
+  <div class="grid">
+    <section><h2>Investigation brief</h2><textarea id="question" placeholder="How does the agent decide whether retrieval is good enough?"></textarea><button id="submit">RUN INVESTIGATION</button></section>
+    <section><h2>Grounded answer</h2><div id="answer" class="answer empty">Your answer and evidence trail will appear here.</div><div id="meta" class="meta"></div></section>
+    <section><h2>Evidence trail</h2><ol id="sources" class="sources"><li>Waiting for an investigation.</li></ol></section>
+    <section><h2>Control plane</h2><div class="answer">The local provider is deterministic and safe to run without API keys. Set MODEL_PROVIDER to openai, anthropic, or local to change the synthesis layer.</div></section>
+    <section class="trace"><div class="step"><strong>01 · Decompose</strong>Turn a broad request into focused sub-questions.</div><div class="step"><strong>02 · Retrieve</strong>Search text and traverse entity relationships in parallel.</div><div class="step"><strong>03 · Grade</strong>Score coverage and rewrite weak queries.</div><div class="step"><strong>04 · Synthesize</strong>Return an answer with inspectable sources.</div></section>
+  </div>
+</main>
+<script>
+const question = document.querySelector('#question');
+const submit = document.querySelector('#submit');
+const answer = document.querySelector('#answer');
+const sources = document.querySelector('#sources');
+const meta = document.querySelector('#meta');
+const statusText = document.querySelector('#status-text');
+const dot = document.querySelector('#status-dot');
+fetch('/health').then(r => r.json()).then(() => { statusText.textContent='edge online'; dot.style.background='#4eaa69'; }).catch(() => { statusText.textContent='edge unavailable'; dot.style.background='#c85c4a'; });
+submit.addEventListener('click', async () => {
+  const value = question.value.trim();
+  if (!value) return;
+  submit.disabled = true; submit.textContent = 'INVESTIGATING...'; answer.className='answer'; answer.textContent='Following the evidence trail...'; meta.innerHTML='';
+  try {
+    const response = await fetch('/api/query', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({question:value}) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Request failed');
+    answer.textContent = data.answer;
+    sources.innerHTML = (data.sources || []).map(s => `<li><strong>${s.title}</strong><br>${s.excerpt}</li>`).join('') || '<li>No sources returned.</li>';
+    meta.innerHTML = [`provider: ${data.provider}`, `iterations: ${data.iterations}`, `confidence: ${Math.round((data.confidence || 0) * 100)}%`].map(x => `<span class="pill">${x}</span>`).join('');
+  } catch (error) { answer.textContent = error.message; sources.innerHTML='<li>Agent request failed.</li>'; }
+  finally { submit.disabled=false; submit.textContent='RUN INVESTIGATION'; }
+});
+</script>
+</body>
+</html>

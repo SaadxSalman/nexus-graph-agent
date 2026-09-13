@@ -1,0 +1,17 @@
+fastapi<1,>=0.115
+uvicorn[standard]<1,>=0.30
+pydantic-settings<3,>=2.6
+httpx<1,>=0.27
+langgraph<1,>=0.2
+langchain-core<1,>=0.3
+openai<2,>=1.50
+anthropic<1,>=0.36
+mcp<2,>=1.1
+asyncpg<1,>=0.29
+chromadb<1,>=0.5
+aiosqlite<1,>=0.20
+
+[dev]
+pytest<9,>=8
+pytest-asyncio<1,>=0.24
+ruff<1,>=0.8

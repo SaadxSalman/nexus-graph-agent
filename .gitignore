@@ -1,0 +1,25 @@
+# Secrets and local configuration
+.env
+.env.*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Rust
+target/
+
+# Runtime data
+.data/
+logs/
+*.log
+
+# Editors and operating systems
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db

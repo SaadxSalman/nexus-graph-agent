@@ -1,0 +1,4 @@
+{"id":"orchestration-01","question":"How does the orchestrator decide when to stop?","required_sources":["doc-orchestration","doc-crag"],"min_confidence":0.4}
+{"id":"retrieval-01","question":"How do vector search and graph traversal work together?","required_sources":["doc-hybrid","Vector Index","Graph Store"],"min_confidence":0.4}
+{"id":"security-01","question":"How are MCP tools restricted?","required_sources":["doc-mcp","MCP"],"min_confidence":0.4}
+{"id":"guardrails-01","question":"What protects the context window and personal data?","required_sources":["doc-guardrails","Guardrails"],"min_confidence":0.4}

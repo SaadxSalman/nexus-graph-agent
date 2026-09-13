@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "nexus-knowledge-tools": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["-m", "nexus_agent.mcp_server"],
+      "cwd": "${workspaceFolder}/agent"
+    }
+  }
+}
