@@ -1,4 +1,4 @@
-# Nexus Graph Agent v0.2
+# Nexus Graph Agent
 
 Nexus Graph Agent is a production-minded reference architecture for agentic Retrieval-Augmented Generation (RAG). It treats retrieval as an active investigation loop instead of a single similarity lookup. The system decomposes a request, searches documents and entity relationships in parallel, evaluates evidence quality, rewrites weak investigations, and returns a cited answer with an inspectable trace.
 
