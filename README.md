@@ -2,7 +2,7 @@
 
 Nexus Graph Agent is a production-minded reference architecture for agentic Retrieval-Augmented Generation (RAG). It treats retrieval as an active investigation loop instead of a single similarity lookup. The system decomposes a request, searches documents and entity relationships in parallel, evaluates evidence quality, rewrites weak investigations, and returns a cited answer with an inspectable trace.
 
-This repository is intentionally runnable in two modes:
+This repository is intentionally runnable in two modes::
 
 - **Local zero-key mode:** a deterministic in-memory knowledge base and grounded synthesizer make the architecture demonstrable without paid APIs, PostgreSQL, Chroma, or Ollama.
 - **Service mode:** Docker Compose starts PostgreSQL with pgvector, ChromaDB, the Python agent, and the Rust edge service. Provider adapters and persistence boundaries are ready for replacing the local implementation with hosted models and production indexes.
